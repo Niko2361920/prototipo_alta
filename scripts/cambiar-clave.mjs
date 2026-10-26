@@ -9,14 +9,18 @@ if (!usuario || !clave || clave.length < 6) {
   console.log('Uso: node --env-file=.env.local scripts/cambiar-clave.mjs <usuario> <contraseña de 6 o más caracteres>');
   process.exit(1);
 }
-const uri = process.env.MONGODB_URI;
-if (!uri || uri === 'memoria') {
+// Quita espacios y comillas como lib/mongo-config.js. No se importa ese archivo
+// porque es .js con sintaxis ESM en un paquete sin "type": "module", y en Node 18/20
+// eso puede fallar al correr el script suelto.
+const limpiar = (v) => (v || '').trim().replace(/^(["'])(.*)\1$/, '$2').trim();
+const cfg = { uri: limpiar(process.env.MONGODB_URI), nombreDb: limpiar(process.env.MONGODB_DB) || 'twoglass' };
+if (!cfg.uri || cfg.uri === 'memoria') {
   console.log('Falta MONGODB_URI en .env.local');
   process.exit(1);
 }
-const cliente = new MongoClient(uri);
+const cliente = new MongoClient(cfg.uri);
 await cliente.connect();
-const db = cliente.db(process.env.MONGODB_DB || 'twoglass');
+const db = cliente.db(cfg.nombreDb);
 const r = await db.collection('usuarios').updateOne(
   { usuario: usuario.toLowerCase() },
   { $set: { hash: await bcrypt.hash(clave, 10) } },

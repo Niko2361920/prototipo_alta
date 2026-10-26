@@ -37,7 +37,7 @@ Al entrar, el usuario decide la interfaz:
 
 ### 2. Preparar MongoDB Atlas (plan gratis M0)
 1. **Network Access** → *Add IP Address* → `0.0.0.0/0` (Vercel no tiene una IP fija).
-2. **Database Access**: usa el usuario de la base de datos. Si su contraseña quedó visible en algún lado, cámbiala aquí (*Edit → Edit Password*).
+2. **Database Access**: crea un usuario solo para la app (`twoglass_app`, rol `readWrite` sobre la base `twoglass`) y úsalo en la cadena, no el administrador. Si alguna contraseña quedó visible en algún lado, cámbiala aquí (*Edit → Edit Password*).
 3. **Connect → Drivers → Node.js**: copia la cadena `mongodb+srv://...` y reemplaza `<db_password>` por la contraseña.
 
 ### 3. Publicar en Vercel (plan Hobby gratis)
@@ -49,6 +49,19 @@ Al entrar, el usuario decide la interfaz:
    | `MONGODB_DB` | `twoglass` |
    | `SESSION_SECRET` | una clave larga y aleatoria (32 caracteres o más) |
 3. *Deploy*. Cada vez que hagan `git push`, Vercel publica la nueva versión sola.
+4. Si cambias o agregas una variable, hay que **volver a desplegar** (*Deployments → ⋯ → Redeploy*): las variables solo aplican en despliegues nuevos.
+
+### Si Vercel no conecta a MongoDB
+Abre `https://TU-PROYECTO.vercel.app/api/salud`. Revisa paso a paso las variables, la conexión y la escritura, y dice la causa probable y qué hacer. No muestra la cadena, el usuario ni la contraseña. Las mismas explicaciones salen en la pantalla de ingreso y en `/configurar`; el error completo queda en *Deployments → Logs*.
+
+| Lo que dice `/api/salud` | Qué hacer |
+|---|---|
+| Falta la variable MONGODB_URI | Agregarla en Vercel (marcar *Production*) y redesplegar. |
+| No se pudo llegar al cluster | Atlas → *Network Access* → agregar `0.0.0.0/0`. Revisar que el cluster no esté pausado. |
+| Atlas rechazó el usuario o la contraseña | La contraseña de la cadena no es la actual (por ejemplo, después de cambiarla). Actualizarla en Vercel y redesplegar. |
+| Ya existe la base «TwoGlass»… | MongoDB no permite `twoglass` y `TwoGlass` a la vez. Borrar la que sobra o poner `MONGODB_DB` con el nombre exacto que ya existe. |
+| No tiene permiso sobre la base | Darle al usuario de la app el rol `readWrite` sobre la misma base de `MONGODB_DB`. |
+| La cadena está mal escrita | Quitar comillas o espacios. Si la contraseña tiene símbolos, cambiarla por una solo con letras y números. |
 
 ### 4. Primer uso
 Abre `https://TU-PROYECTO.vercel.app/configurar`, escribe la contraseña de Angélica, Diego y Joshua y marca si quieres **datos de prueba** (clientes ficticios marcados como «prueba», para mostrar la plataforma). Esa página se bloquea después del primer uso. Los datos de prueba se borran con un botón desde Gerencia → Resumen.
@@ -106,3 +119,13 @@ Para cambiar o agregar causas, se edita `lib/catalogo.js`.
 - Los gráficos usan un solo eje: las barras muestran el % de cada causa y la línea, el % acumulado.
 - Los tiempos meta (menos de 30 s y máximo 3 toques) son una propuesta del equipo para validar con los operarios.
 - Las recomendaciones que aparecen junto a cada causa son sugerencias del equipo, y hay que validarlas con Two Glass.
+
+## Decisiones
+
+**26 oct 2026**
+- `/api/salud` es pública → hace falta antes de que exista algún usuario. Por eso solo muestra sí/no y la causa, nunca la cadena ni el host. Se descartó protegerla con sesión porque el fallo más común (no hay conexión) impide iniciar sesión.
+- Los errores de MongoDB se traducen en `lib/mongo-config.js` → el driver solo dice «Server selection timed out» o «bad auth», y la pantalla mostraba «No hay conexión» sin la causa.
+- El error de mayúsculas y el de permisos ya no se esconden al crear los índices → antes se ignoraban y la app fallaba después, al guardar.
+- Límite de ingreso: 5 fallos por usuario y 20 por IP en 15 minutos, contados en `auditoria` → no hace falta otra colección. Contra: alguien puede bloquear 15 minutos una cuenta a propósito. Se descartó contar solo por IP porque, cambiando de IP, se podría seguir probando claves.
+- Bocetos SVG con `Content-Security-Policy: sandbox` y `nosniff` → un SVG con script no se ejecuta aunque alguien abra la URL directamente.
+- PostCSS (aviso de `npm audit`, GHSA-qx2v-qp2m-jg93) no se cambió en esta versión → no se pudo instalar ni probar el build aquí. Corre en el build sobre CSS propio, así que el riesgo es bajo.

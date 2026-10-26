@@ -1,14 +1,14 @@
 import bcrypt from 'bcryptjs';
 import { getDb } from '@/lib/db';
 import { COOKIE, firmarSesion, duracion, inicioDe } from '@/lib/sesion';
-import { cuerpo, error, ok, texto } from '@/lib/api';
+import { conErrores, cuerpo, error, ipDe, ok, texto } from '@/lib/api';
 import { auditar } from '@/lib/auditoria';
 
 export const dynamic = 'force-dynamic';
 
 const MAX_POR_HORA = 5;
 
-export async function POST(req) {
+export const POST = conErrores(async (req) => {
   const entrada = await cuerpo(req);
   const nombre = texto(entrada?.nombre, 60);
   const usuario = texto(entrada?.usuario, 30).toLowerCase();
@@ -27,7 +27,7 @@ export async function POST(req) {
     return error(409, 'La plataforma aún no está configurada. Entra primero a /configurar.');
   }
 
-  const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'desconocida';
+  const ip = ipDe(req);
   const hace1h = new Date(Date.now() - 60 * 60 * 1000);
   const recientes = await db.collection('auditoria').countDocuments({
     accion: 'registro',
@@ -66,4 +66,4 @@ export async function POST(req) {
     maxAge: duracion(documento.rol),
   });
   return res;
-}
+});

@@ -26,7 +26,7 @@ export default function Ingreso() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario, clave }),
       });
-      const d = await r.json();
+      const d = await r.json().catch(() => ({})); // si el servidor responde HTML (p. ej. 504 de Vercel)
       if (!r.ok) throw new Error(d.error || 'No se pudo entrar.');
       window.location.href = d.destino;
     } catch (err) {
@@ -67,7 +67,12 @@ export default function Ingreso() {
               <a className="btn chico" href="/configurar">Configurar</a>
             </div>
           )}
-          {estado?.error && <div className="error-form"><Icono.alerta tam={18} />No hay conexión con la base de datos.</div>}
+          {estado?.error && (
+            <div className="error-form" role="alert"><Icono.alerta tam={18} />
+              {/* /api/configurar ya devuelve la causa y qué hacer; si no hubo respuesta, mensaje genérico */}
+              {typeof estado.error === 'string' ? estado.error : 'No hay conexión con la base de datos.'}
+            </div>
+          )}
 
           <div>
             <p style={{ fontSize: '.82rem', fontWeight: 700, color: 'var(--tinta-2)', marginBottom: '.4rem' }}>¿Quién eres?</p>
@@ -102,7 +107,7 @@ export default function Ingreso() {
           </button>
           {estado && !estado.error && !estado.necesitaConfigurar && (
             <p style={{ textAlign: 'center', margin: 0 }}>
-              ¿No tienes cuenta? <a href="/registro">Regístrate aquí</a>
+              ¿No tienes cuenta? <a href="/registro">Crear cuenta</a>
             </p>
           )}
           <p style={{ color: 'var(--gris)', fontSize: '.82rem' }}>

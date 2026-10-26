@@ -13,6 +13,11 @@ export async function GET(_req, { params }) {
     headers: {
       'Content-Type': b.tipo,
       'Cache-Control': 'private, max-age=31536000, immutable',
+      // Un SVG puede traer <script>. Dentro de <img> no se ejecuta, pero si alguien
+      // abre la URL directo sí. La CSP con sandbox bloquea scripts y formularios
+      // en ese caso; nosniff evita que el navegador lo interprete como otro tipo.
+      'Content-Security-Policy': "default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox",
+      'X-Content-Type-Options': 'nosniff',
     },
   });
 }

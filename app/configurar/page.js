@@ -26,8 +26,8 @@ export default function Configurar() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ claves, datosPrueba: prueba }),
       });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error);
+      const d = await r.json().catch(() => ({})); // si el servidor responde HTML (p. ej. 504 de Vercel)
+      if (!r.ok) throw new Error(d.error || 'No se pudo guardar. Revisa /api/salud.');
       setListo(true);
     } catch (err) {
       setError(err.message);

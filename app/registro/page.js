@@ -21,7 +21,7 @@ export default function Registro() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre, usuario, clave }),
       });
-      const d = await r.json();
+      const d = await r.json().catch(() => ({})); // si el servidor responde HTML (p. ej. 504 de Vercel)
       if (!r.ok) throw new Error(d.error || 'No se pudo crear la cuenta.');
       window.location.href = d.destino;
     } catch (err) {

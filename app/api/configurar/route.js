@@ -2,7 +2,8 @@ import bcrypt from 'bcryptjs';
 import { getDb, usaMemoria } from '@/lib/db';
 import { USUARIOS_BASE } from '@/lib/catalogo';
 import { cargarDatosPrueba } from '@/lib/semilla';
-import { cuerpo, error, ok } from '@/lib/api';
+import { conErrores, cuerpo, error, ok } from '@/lib/api';
+import { mensajePublico } from '@/lib/mongo-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,11 +14,12 @@ export async function GET() {
     const n = await db.collection('usuarios').countDocuments({});
     return ok({ necesitaConfigurar: n === 0, memoria: usaMemoria });
   } catch (e) {
-    return error(500, `No se pudo conectar a la base de datos: ${e.message}`);
+    // El mensaje ya viene traducido (causa + qué hacer) y sin datos de la cadena
+    return error(503, `No se pudo conectar a la base de datos. ${mensajePublico(e)}`);
   }
 }
 
-export async function POST(req) {
+export const POST = conErrores(async (req) => {
   const db = await getDb();
   if ((await db.collection('usuarios').countDocuments({})) > 0) {
     return error(409, 'La plataforma ya está configurada.');
@@ -35,8 +37,14 @@ export async function POST(req) {
     hash: await bcrypt.hash(String(claves[u.usuario]), 10),
     creado: new Date(),
   })));
-  await db.collection('usuarios').insertMany(docs);
+  try {
+    await db.collection('usuarios').insertMany(docs);
+  } catch (e) {
+    // Dos envíos casi al mismo tiempo: el segundo choca con el índice único
+    if (e?.code === 11000) return error(409, 'La plataforma ya está configurada.');
+    throw e;
+  }
   let prueba = null;
   if (datosPrueba) prueba = await cargarDatosPrueba('angelica');
   return ok({ ok: true, prueba });
-}
+});
