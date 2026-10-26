@@ -61,6 +61,11 @@ export default function Ingreso() {
       <section className="ingreso-form">
         <form onSubmit={entrar}>
           <h2>Entrar</h2>
+          <div className="registro-arriba" style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: '.85rem', fontWeight: 700 }}>¿Primera vez? Regístrate como:</span>
+            <a className="btn chico" href="/registro?rol=gerente">Gerencia</a>
+            <a className="btn chico" href="/registro?rol=produccion">Producción</a>
+          </div>
           {estado?.necesitaConfigurar && (
             <div className="aviso-prueba">
               <span>Es la primera vez que se abre la plataforma.</span>
