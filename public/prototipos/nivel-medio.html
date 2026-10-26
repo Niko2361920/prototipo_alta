@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="es-CO">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Two Glass · Prototipo nivel medio</title>
+<meta name="description" content="Prototipo navegable de nivel medio de la plataforma de registro de causas 6M (TeamGlass). Datos de ejemplo, sin base de datos.">
+<style>
+/* Nivel MEDIO: misma estructura que la plataforma, en grises con un solo color de acento.
+   Sirve para probar el flujo con Diego, Joshua y Angélica antes de la versión final. */
+:root{
+  --fondo:#eef0f1; --papel:#fff; --linea:#cfd5d9; --texto:#1f232b; --suave:#5e6670; --tenue:#8b939b;
+  --acento:#1f8ea6; --acento-osc:#167286; --menta:#c1e1da; --oscuro:#2b2f38; --oscuro-2:#363b46; --oscuro-3:#434957;
+  --alerta:#c4561f; --bien:#1f7a1f;
+  --f: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+*{box-sizing:border-box} html,body{margin:0}
+body{font-family:var(--f);background:var(--fondo);color:var(--texto);line-height:1.4}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--acento);outline-offset:2px}
+.barra-proto{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;background:#fff;border-bottom:2px dashed var(--linea);padding:.6rem 1rem;position:sticky;top:0;z-index:30}
+.barra-proto b{font-size:.95rem}
+.barra-proto .etq{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:#fff3cd;color:#6b4a00;border:1px solid #e6c25a;border-radius:6px;padding:.15rem .5rem}
+.seg{display:inline-flex;background:#e3e7ea;border-radius:999px;padding:3px}
+.seg button{border:0;background:transparent;padding:.45rem .9rem;border-radius:999px;font-weight:700;cursor:pointer;color:var(--suave);min-height:38px}
+.seg button[aria-pressed=true]{background:#fff;color:var(--texto);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.btn{display:inline-flex;align-items:center;gap:.4rem;justify-content:center;border:2px solid var(--acento);background:var(--acento);color:#fff;border-radius:999px;padding:.5rem 1rem;font-weight:700;cursor:pointer;min-height:42px}
+.btn.sec{background:#fff;color:var(--texto);border-color:var(--linea)}
+.btn.chico{min-height:34px;padding:.3rem .8rem;font-size:.88rem}
+.oculto{display:none!important}
+.derecha{margin-left:auto}
+
+/* ---- Producción (TV) ---- */
+.tv{background:var(--oscuro);color:#eef1f3;min-height:calc(100dvh - 58px);padding:1rem;display:grid;gap:.9rem;grid-template-rows:auto 1fr auto;font-size:clamp(13px,1vw,22px)}
+.tv-cab{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.marca{border:2px dashed #8b939b;border-radius:8px;padding:.25rem .6rem;font-weight:800;letter-spacing:.05em;color:#cfd5d9}
+.tv-cab .num{display:grid;line-height:1.1}.tv-cab .num small{color:#a9b1b8;font-size:.7em;font-weight:700;text-transform:uppercase}.tv-cab .num b{font-size:1.3em}
+.cuerpo{display:grid;grid-template-columns:30fr 38fr 32fr;gap:.9rem;min-height:0}
+.panel{background:var(--oscuro-2);border-radius:14px;padding:1rem;display:flex;flex-direction:column;gap:.7rem;min-width:0}
+.etq-tv{font-size:.75em;color:#a9b1b8;text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.boceto{flex:1;min-height:14em;border:3px dashed #8b939b;border-radius:12px;display:grid;place-items:center;text-align:center;color:#a9b1b8;padding:1rem}
+.boceto b{display:block;color:#fff;font-size:1.3em}
+h1.cliente{font-size:2.1em;margin:0;line-height:1.05}
+.specs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5em}
+.spec{background:var(--oscuro-3);border-radius:10px;padding:.5em .7em}.spec small{display:block;color:#a9b1b8;font-size:.7em;font-weight:700;text-transform:uppercase}.spec b{font-size:1.05em}
+.avance{background:var(--oscuro-3);border-radius:12px;padding:.8em;display:grid;gap:.5em}
+.avance .grande{font-size:2.4em;font-weight:800;line-height:1}
+.barra{height:.8em;background:#20242b;border-radius:99px;overflow:hidden;display:flex}.barra i{display:block;height:100%}.barra .ok{background:var(--acento)}.barra .mal{background:var(--alerta)}
+.tv-btn{border:2px solid var(--oscuro-3);background:var(--oscuro-2);color:#fff;border-radius:999px;padding:.45em .9em;font-weight:700;cursor:pointer;min-height:2.5em}
+.tv-btn.prim{background:var(--menta);border-color:var(--menta);color:#111}
+.causa-alerta{background:var(--oscuro-3);border-radius:10px;padding:.6em .8em;display:grid;grid-template-columns:1fr auto;gap:.2em .6em}
+.causa-alerta b{font-size:1.02em}.causa-alerta p{margin:0;color:#c3cad0;font-size:.85em}.causa-alerta .veces{color:#ffb08a;font-weight:800;font-size:1.2em;grid-row:span 2;align-self:center}
+.reg-6m{display:grid;grid-template-columns:auto repeat(6,minmax(0,1fr));gap:.55em}
+.reg-6m .tit{display:grid;align-content:center}.reg-6m .tit small{color:#a9b1b8}
+.cat{background:var(--oscuro-2);border:2px solid var(--oscuro-3);border-radius:12px;color:#fff;font-weight:700;cursor:pointer;padding:.7em;display:flex;align-items:center;gap:.5em;min-height:4em;text-align:left}
+.cat:hover{border-color:var(--menta)}
+.cat .ico{width:2.2em;height:2.2em;border-radius:9px;background:var(--menta);color:#111;display:grid;place-items:center;flex:none}
+.velo{position:fixed;inset:0;background:rgba(10,12,16,.7);display:grid;place-items:center;z-index:50;padding:1rem}
+.hoja{background:var(--oscuro-2);color:#fff;border-radius:16px;padding:1.2rem;width:min(860px,96vw);display:grid;gap:.9rem;font-size:clamp(14px,1.1vw,22px)}
+.opciones{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.opcion{background:var(--oscuro-3);border:2px solid transparent;border-radius:12px;color:#fff;font-weight:700;text-align:left;padding:.9em 1em;cursor:pointer;font-size:1.05em;min-height:3.6em}
+.opcion:hover,.opcion:focus-visible{border-color:var(--menta)}
+.opcion small{display:block;color:#ffb08a;font-size:.72em}
+.confirma{position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);background:#fff;color:var(--texto);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.35);padding:.7rem .9rem;display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;z-index:60;max-width:96vw}
+.confirma .cant{display:flex;align-items:center;gap:.3rem;background:#eef1f3;border-radius:99px;padding:.2rem}
+.confirma .cant button{border:0;background:#fff;border-radius:99px;width:36px;height:36px;font-weight:800;cursor:pointer}
+.metrica{font-size:.8rem;color:var(--suave)}
+
+/* ---- Gerencia ---- */
+.ger{max-width:1200px;margin:0 auto;padding:1.2rem;display:grid;gap:1rem}
+.ger h1{margin:0;font-size:1.7rem}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.8rem}
+.kpi{background:#fff;border:1px solid var(--linea);border-radius:12px;padding:.9rem}.kpi small{color:var(--suave);font-weight:700}.kpi b{display:block;font-size:1.9rem}
+.tarjeta{background:#fff;border:1px solid var(--linea);border-radius:12px;padding:1rem}
+.tarjeta h2{margin:0 0 .7rem;font-size:1.1rem}
+.pareto{display:grid;gap:.45rem}
+.fila{display:grid;grid-template-columns:1.6rem 1fr auto;gap:.2rem .6rem;align-items:center}
+.fila .b{grid-column:2/4;height:10px;background:#e6eaec;border-radius:99px;overflow:hidden}.fila .b i{display:block;height:100%;background:var(--acento)}
+.fila.bajo .b i{background:#a9c9d1}
+.corte{display:flex;align-items:center;gap:.5rem;color:var(--alerta);font-size:.78rem;font-weight:700}.corte:before,.corte:after{content:"";flex:1;height:1px;background:#e8b39a}
+table{width:100%;border-collapse:collapse;font-size:.9rem}th,td{text-align:left;padding:.5rem;border-bottom:1px solid #e6eaec}th{font-size:.75rem;text-transform:uppercase;color:var(--suave)}
+.dos{display:grid;grid-template-columns:1.4fr 1fr;gap:1rem}
+.campo{display:grid;gap:.3rem}.campo span{font-size:.8rem;font-weight:700;color:var(--suave)}
+.entrada{border:2px solid var(--linea);border-radius:10px;padding:.5rem .7rem;min-height:42px;background:#fff;width:100%}
+.nota{background:#fff8e1;border:1px dashed #e6c25a;border-radius:10px;padding:.7rem .9rem;color:#5a4300;font-size:.9rem}
+@media (max-width:900px){
+  .cuerpo{grid-template-columns:1fr}.reg-6m{grid-template-columns:repeat(3,1fr)}.reg-6m .tit{grid-column:1/-1}
+  .kpis{grid-template-columns:1fr 1fr}.dos{grid-template-columns:1fr}.opciones{grid-template-columns:1fr}.specs{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="barra-proto">
+  <span class="etq">Prototipo nivel medio</span>
+  <b>Two Glass · Registro de causas 6M</b>
+  <div class="seg" role="group" aria-label="Ver como">
+    <button id="v-prod" aria-pressed="true">Producción (TV)</button>
+    <button id="v-ger" aria-pressed="false">Gerencia</button>
+    <button id="v-val" aria-pressed="false">Pruebas con usuarios</button>
+  </div>
+  <span class="metrica derecha">Datos de ejemplo · no se guarda en ninguna base de datos</span>
+</div>
+
+<!-- ================= PRODUCCIÓN ================= -->
+<section id="prod" class="tv" aria-label="Vista de producción">
+  <header class="tv-cab">
+    <span class="marca">TWO GLASS</span>
+    <span class="etq-tv">Producción</span>
+    <span class="num"><small>Hoy buenas</small><b id="h-buenas">0</b></span>
+    <span class="num"><small>Defectos</small><b id="h-def">0</b></span>
+    <span class="num"><small>% defectos</small><b id="h-pct">0 %</b></span>
+    <span class="derecha" style="display:flex;gap:.4rem;align-items:center">
+      <span class="etq-tv">Registra</span>
+      <span class="seg" role="group" aria-label="Operario"><button data-op="Diego" aria-pressed="true">Diego</button><button data-op="Joshua" aria-pressed="false">Joshua</button></span>
+    </span>
+  </header>
+  <main class="cuerpo">
+    <section class="panel">
+      <span class="etq-tv">Boceto aprobado</span>
+      <div class="boceto"><div><b>[ BOCETO ]</b>Imagen del arte que sube gerencia<br>(en el nivel alto se ve la imagen real)</div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap">
+        <span id="prueba-txt">Falta la prueba de impresión</span>
+        <button class="tv-btn prim" id="prueba-btn">Marcar aprobada</button>
+      </div>
+    </section>
+    <section class="panel">
+      <span class="etq-tv">TG-0015 · en producción</span>
+      <div><h1 class="cliente">Cosméticos (ejemplo)</h1><div style="color:#c3cad0;font-size:1.15em">Tarro PP 100 g con relieve</div></div>
+      <div class="specs">
+        <div class="spec"><small>Material</small><b>Plástico PP</b></div>
+        <div class="spec"><small>Forma</small><b>Cilíndrico · relieve</b></div>
+        <div class="spec"><small>Técnica</small><b>Tampografía</b></div>
+        <div class="spec"><small>Tinta</small><b>Solvente azul</b></div>
+        <div class="spec"><small>Colores</small><b>1</b></div>
+        <div class="spec"><small>Merma máx.</small><b>5 %</b></div>
+      </div>
+      <div class="avance">
+        <div><span class="grande" id="t-buenas">80</span> de 200 buenas</div>
+        <div class="barra"><i class="ok" id="b-ok"></i><i class="mal" id="b-mal"></i></div>
+        <div style="display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap;align-items:center">
+          <span id="t-estado">0 defectos · 0 %</span>
+          <span style="display:flex;gap:.35rem"><button class="tv-btn" data-suma="10">+10</button><button class="tv-btn" data-suma="25">+25</button><button class="tv-btn" data-suma="50">+50</button></span>
+        </div>
+      </div>
+      <div style="border-left:4px solid var(--menta);padding:.4rem .7rem;background:rgba(193,225,218,.1);border-radius:6px">
+        <span class="etq-tv">Indicaciones de gerencia</span><br>Revisar alineación cada 20 piezas.
+      </div>
+    </section>
+    <section class="panel">
+      <span class="etq-tv">Ojo: lo que falló en trabajos parecidos</span>
+      <div class="causa-alerta"><b>Envases con relieve: la tinta no adhiere</b><span class="veces">9×</span><p>Hacer prueba de adhesión con cinta antes del lote.</p></div>
+      <div class="causa-alerta"><b>Polvo de la avenida principal</b><span class="veces">8×</span><p>Cerrar la puerta y limpiar el envase antes de estampar.</p></div>
+      <div class="causa-alerta"><b>Tinta fuerte que ataca el plástico</b><span class="veces">6×</span><p>Probar la tinta en una pieza del cliente.</p></div>
+      <span class="metrica" style="color:#a9b1b8">Parecidos por: mismo material, misma tinta, envase con relieve</span>
+      <span class="etq-tv" style="margin-top:auto">Últimos registros</span>
+      <div id="ultimos" style="display:grid;gap:.3rem;font-size:.9em;color:#d7dde1"><span style="color:#a9b1b8">Todavía no hay registros en este prototipo.</span></div>
+    </section>
+  </main>
+  <nav class="reg-6m" aria-label="Registrar defecto">
+    <div class="tit"><b>Registrar defecto</b><small>Toca la categoría · teclas 1–6</small></div>
+  </nav>
+</section>
+
+<!-- ================= GERENCIA ================= -->
+<section id="ger" class="ger oculto" aria-label="Vista de gerencia">
+  <h1>Hola, Angélica</h1>
+  <div class="kpis">
+    <div class="kpi"><small>% de envases con defecto</small><b id="g-pct">—</b><span id="g-est" class="metrica"></span></div>
+    <div class="kpi"><small>Defectos registrados</small><b id="g-def">—</b></div>
+    <div class="kpi"><small>Envases buenos</small><b id="g-buenas">—</b></div>
+    <div class="kpi"><small>Trabajos</small><b>1</b><span class="metrica">en producción · 4 en cola</span></div>
+  </div>
+  <div class="dos">
+    <div class="tarjeta"><h2>Pareto: ¿qué causa más defectos?</h2><div id="g-pareto" class="pareto"></div></div>
+    <div class="tarjeta"><h2>Por categoría 6M</h2><div id="g-cat" class="pareto"></div></div>
+  </div>
+  <div class="tarjeta"><h2>Registros</h2><div style="overflow-x:auto"><table><thead><tr><th>Hora</th><th>Causa</th><th>Categoría</th><th>Cant.</th><th>Acción</th><th>Registró</th></tr></thead><tbody id="g-tabla"></tbody></table></div></div>
+  <p class="nota">Los datos de esta vista son de ejemplo más lo que se registre en la vista de producción de este mismo prototipo. En el nivel alto todo sale de la base de datos.</p>
+</section>
+
+<!-- ================= PRUEBAS CON USUARIOS ================= -->
+<section id="val" class="ger oculto" aria-label="Pruebas con usuarios">
+  <h1>Pruebas con usuarios</h1>
+  <p class="nota">Cómo usarlo: escriban quién prueba, pídanle que registre 3 defectos que ustedes le dicten en voz alta en la vista de Producción, y vuelvan aquí. El prototipo mide solo el tiempo (desde que toca la categoría hasta que elige la causa) y los toques de cada registro. Meta del equipo: menos de 30 segundos y máximo 3 toques.</p>
+  <div class="tarjeta" style="display:grid;gap:.8rem">
+    <div class="dos">
+      <label class="campo"><span>Persona que prueba</span><input class="entrada" id="p-nombre" placeholder="Ej.: Diego"></label>
+      <label class="campo"><span>Actor</span><select class="entrada" id="p-actor"><option>Operario</option><option>Gerencia</option><option>Cliente</option><option>Otro</option></select></label>
+    </div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap"><button class="btn" id="p-iniciar">Empezar prueba con esta persona</button><button class="btn sec" id="p-csv">Descargar resultados (CSV)</button></div>
+    <div id="p-actual" class="metrica"></div>
+  </div>
+  <div class="tarjeta"><h2>Resultados</h2><div style="overflow-x:auto"><table><thead><tr><th>Persona</th><th>Actor</th><th>Causa registrada</th><th>Tiempo</th><th>Toques</th><th>¿Deshizo?</th></tr></thead><tbody id="p-tabla"></tbody></table></div><p class="metrica" id="p-resumen"></p></div>
+</section>
+
+<div id="capa"></div>
+
+<script>
+(function(){
+  "use strict";
+  var CATS=[
+    {id:"mano_obra",n:"Mano de obra",causas:[["Tinta corrida o derramada al manipular",1],["Limpieza y reproceso sin reportar"],["Presión por entregar la producción"],["Temor a reportar errores"]]},
+    {id:"medio_ambiente",n:"Medio ambiente",causas:[["Polvo de la avenida principal",1],["Partículas de la cortadora de vidrio",1],["Espacio reducido de trabajo"]]},
+    {id:"maquinaria",n:"Maquinaria",causas:[["Dos máquinas con años de uso"],["Carga manual, unidad por unidad"],["Desajuste de la máquina"]]},
+    {id:"materia_prima",n:"Materia prima",causas:[["Envases con relieve: la tinta no adhiere"],["Tinta fuerte que ataca el plástico"]]},
+    {id:"metodo",n:"Método",causas:[["Registro informal en WhatsApp Business"],["Prueba de impresión opcional"],["Técnica inadecuada para el envase"]]},
+    {id:"medicion",n:"Medición",causas:[["Sin indicadores de defectos"],["Inspección «a ojo»"],["No se registran las causas"]]}
+  ];
+  var ICO={
+    mano_obra:'<path d="M8 12.5V6.2a1.4 1.4 0 0 1 2.8 0V11M10.8 10.8V4.6a1.4 1.4 0 0 1 2.8 0v6.2M13.6 11V5.8a1.4 1.4 0 0 1 2.8 0V12M16.4 12V8.6a1.4 1.4 0 0 1 2.8 0v5.2c0 4.2-3 7.2-7 7.2h-.6c-2.3 0-3.8-1-5.1-2.8l-2.6-3.7a1.5 1.5 0 0 1 2.4-1.8L8 14.3"/>',
+    medio_ambiente:'<path d="M3 9h9.5a2.8 2.8 0 1 0-2.8-2.8M3 13h14a2.8 2.8 0 1 1-2.8 2.8M3 17h6"/>',
+    maquinaria:'<circle cx="12" cy="12" r="6.6"/><circle cx="12" cy="12" r="2.4"/><path d="M18.6 12h2.8M3.4 12h-0.8M12 5.4V2.6M12 18.6v2.8M16.7 7.3l2-2M5.3 18.7l2-2M16.7 16.7l2 2M5.3 5.3l2 2"/>',
+    materia_prima:'<path d="M10 2.5h4V5c0 1.2 3.2 2.3 3.2 5.6v9.2a1.8 1.8 0 0 1-1.8 1.8H8.6a1.8 1.8 0 0 1-1.8-1.8v-9.2C6.8 7.3 10 6.2 10 5zM6.8 12.5h10.4M6.8 17h10.4"/>',
+    metodo:'<path d="M9 3.5h6v3H9zM7.2 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-1.2M8.3 12.3l2 2 3.6-3.6M8.3 17.5h7.4"/>',
+    medicion:'<path d="M3.6 17.5a8.4 8.4 0 1 1 16.8 0M12 17.5l4.2-5.3M6.7 13l1.1.8M12 9.2v1.3M17.3 13l-1.1.8"/>'
+  };
+  function svg(id,t){return '<svg width="'+(t||22)+'" height="'+(t||22)+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+ICO[id]+'</svg>';}
+  function $(s){return document.querySelector(s);}
+  function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+
+  // Datos de ejemplo (historial ficticio para que la vista de gerencia no esté vacía)
+  var BASE={"Partículas de la cortadora de vidrio":22,"Tinta corrida o derramada al manipular":18,"Carga manual, unidad por unidad":12,"Limpieza y reproceso sin reportar":12,"Polvo de la avenida principal":9,"Envases con relieve: la tinta no adhiere":8,"Inspección «a ojo»":5,"Desajuste de la máquina":4};
+  var estado={operario:"Diego",buenas:80,buenasHoyBase:240,registros:[],prueba:false,sesion:null,pruebas:[]};
+  try{var g=JSON.parse(localStorage.getItem("tg_nivel_medio")||"null"); if(g){estado.pruebas=g.pruebas||[];}}catch(e){}
+  function guardar(){try{localStorage.setItem("tg_nivel_medio",JSON.stringify({pruebas:estado.pruebas}));}catch(e){}}
+
+  // ---- Vistas ----
+  function vista(v){
+    $("#capa").innerHTML="";medida=null;
+    ["prod","ger","val"].forEach(function(x){$("#"+x).classList.toggle("oculto",x!==v);});
+    $("#v-prod").setAttribute("aria-pressed",v==="prod");$("#v-ger").setAttribute("aria-pressed",v==="ger");$("#v-val").setAttribute("aria-pressed",v==="val");
+    if(v==="ger")pintarGerencia(); if(v==="val")pintarPruebas();
+  }
+  $("#v-prod").onclick=function(){vista("prod");};$("#v-ger").onclick=function(){vista("ger");};$("#v-val").onclick=function(){vista("val");};
+  document.querySelectorAll("[data-op]").forEach(function(b){b.onclick=function(){estado.operario=b.dataset.op;document.querySelectorAll("[data-op]").forEach(function(x){x.setAttribute("aria-pressed",x===b);});};});
+
+  // ---- Medición de cada registro (tiempo y toques) ----
+  var medida=null;
+  function iniciarMedida(){medida={t0:performance.now(),toques:1};}
+  function toque(){if(medida)medida.toques++;}
+
+  // ---- Botones 6M ----
+  var nav=$(".reg-6m");
+  CATS.forEach(function(c,i){
+    var b=document.createElement("button");b.className="cat";b.innerHTML='<span class="ico">'+svg(c.id,22)+'</span>'+c.n;
+    b.onclick=function(){iniciarMedida();abrir(i);};nav.appendChild(b);
+  });
+  function abrir(i){
+    var c=CATS[i];
+    var h='<div class="velo" id="velo"><div class="hoja" role="dialog" aria-modal="true"><div style="display:flex;gap:.7rem;align-items:center"><span class="ico" style="width:2.4em;height:2.4em;border-radius:10px;background:var(--menta);color:#111;display:grid;place-items:center">'+svg(c.id,26)+'</span><div style="flex:1"><b style="font-size:1.4em">'+c.n+': ¿qué pasó?</b><div class="metrica" style="color:#c3cad0">Registra '+estado.operario+' · 1 pieza</div></div><button class="tv-btn" id="cerrar" aria-label="Cerrar">✕</button></div><div class="opciones">';
+    c.causas.forEach(function(x,k){h+='<button class="opcion" data-k="'+k+'">'+(k+1)+'. '+esc(x[0])+(x[1]?'<small>Causa prioritaria</small>':'')+'</button>';});
+    h+='</div></div></div>';
+    $("#capa").innerHTML=h;
+    $("#cerrar").onclick=function(){medida=null;$("#capa").innerHTML="";};
+    $("#velo").onclick=function(e){if(e.target.id==="velo"){medida=null;$("#capa").innerHTML="";}};
+    document.querySelectorAll(".opcion").forEach(function(b){b.onclick=function(){toque();registrar(c,c.causas[+b.dataset.k][0]);};});
+    var primero=document.querySelector(".opcion");if(primero)primero.focus();
+  }
+  function registrar(c,causa){
+    var seg=medida?(performance.now()-medida.t0)/1000:null, toques=medida?medida.toques:null; medida=null;
+    var r={id:Date.now(),hora:new Date(),causa:causa,cat:c.n,catId:c.id,cant:1,accion:"Reproceso",op:estado.operario,seg:seg,toques:toques,deshecho:false};
+    estado.registros.unshift(r);
+    if(estado.sesion){estado.pruebas.push({persona:estado.sesion.nombre,actor:estado.sesion.actor,causa:causa,seg:seg,toques:toques,deshizo:false,id:r.id});guardar();}
+    $("#capa").innerHTML='<div class="confirma" role="status"><b>✓ '+esc(causa)+'</b><span class="metrica">'+esc(r.op)+' · '+(seg!=null?seg.toFixed(1).replace(".",",")+' s · '+toques+' toques':'')+'</span><span class="cant"><button id="menos" aria-label="Una menos">−</button><b id="cant">1</b><button id="mas" aria-label="Una más">+</button></span><span class="seg"><button id="rep" aria-pressed="true">Reproceso</button><button id="des" aria-pressed="false">Descarte</button></span><button class="btn sec chico" id="deshacer">Deshacer</button><button class="btn chico" id="listo">Listo</button></div>';
+    $("#mas").onclick=function(){r.cant++;$("#cant").textContent=r.cant;pintarProd();};
+    $("#menos").onclick=function(){if(r.cant>1){r.cant--;$("#cant").textContent=r.cant;pintarProd();}};
+    $("#rep").onclick=function(){r.accion="Reproceso";$("#rep").setAttribute("aria-pressed",true);$("#des").setAttribute("aria-pressed",false);};
+    $("#des").onclick=function(){r.accion="Descarte";$("#des").setAttribute("aria-pressed",true);$("#rep").setAttribute("aria-pressed",false);};
+    $("#deshacer").onclick=function(){estado.registros=estado.registros.filter(function(x){return x!==r;});estado.pruebas.forEach(function(p){if(p.id===r.id)p.deshizo=true;});guardar();$("#capa").innerHTML="";pintarProd();};
+    $("#listo").onclick=function(){$("#capa").innerHTML="";};
+    clearTimeout(registrar.t);registrar.t=setTimeout(function(){if(document.querySelector(".confirma"))$("#capa").innerHTML="";},12000);
+    pintarProd();
+  }
+  document.addEventListener("keydown",function(e){
+    if($("#prod").classList.contains("oculto")||/INPUT|SELECT/.test(e.target.tagName))return;
+    if(e.key==="Escape"){medida=null;$("#capa").innerHTML="";return;}
+    var abierto=document.querySelector(".opcion");
+    var n=+e.key;
+    if(abierto&&n>=1){var b=document.querySelectorAll(".opcion")[n-1];if(b)b.click();return;}
+    if(!abierto&&n>=1&&n<=6){iniciarMedida();abrir(n-1);}
+  });
+  document.querySelectorAll("[data-suma]").forEach(function(b){b.onclick=function(){estado.buenas+=+b.dataset.suma;pintarProd();};});
+  $("#prueba-btn").onclick=function(){estado.prueba=!estado.prueba;$("#prueba-txt").textContent=estado.prueba?"✓ Prueba de impresión aprobada":"Falta la prueba de impresión";$("#prueba-btn").textContent=estado.prueba?"Quitar":"Marcar aprobada";};
+
+  function totalDef(){return estado.registros.reduce(function(s,r){return s+r.cant;},0);}
+  function pct(a,b){return b?((a/b)*100).toFixed(1).replace(".",",")+" %":"—";}
+  function pintarProd(){
+    var d=totalDef();
+    $("#t-buenas").textContent=estado.buenas;
+    $("#b-ok").style.width=Math.min(100,estado.buenas/2)+"%";$("#b-mal").style.width=Math.min(100-estado.buenas/2,d/2)+"%";
+    $("#t-estado").textContent=d+" defectos · "+pct(d,estado.buenas+d);
+    $("#h-buenas").textContent=estado.buenasHoyBase+estado.buenas;$("#h-def").textContent=d;$("#h-pct").textContent=pct(d,estado.buenasHoyBase+estado.buenas+d);
+    $("#ultimos").innerHTML=estado.registros.length?estado.registros.slice(0,4).map(function(r){return '<div style="display:flex;justify-content:space-between;gap:.5rem;border-bottom:1px solid #4a505e;padding:.2rem 0"><b>'+esc(r.causa)+' ×'+r.cant+'</b><span style="color:#a9b1b8">'+esc(r.op)+'</span></div>';}).join(""):'<span style="color:#a9b1b8">Todavía no hay registros en este prototipo.</span>';
+  }
+
+  function pintarGerencia(){
+    var mapa={};Object.keys(BASE).forEach(function(k){mapa[k]=BASE[k];});
+    estado.registros.forEach(function(r){mapa[r.causa]=(mapa[r.causa]||0)+r.cant;});
+    var lista=Object.keys(mapa).map(function(k){return [k,mapa[k]];}).sort(function(a,b){return b[1]-a[1];});
+    var total=lista.reduce(function(s,x){return s+x[1];},0),acum=0,corte=-1,h="";
+    lista.forEach(function(x,i){acum+=x[1];var a=acum/total;if(corte<0&&a>=0.8)corte=i;
+      h+='<div class="fila'+(corte>=0&&i>corte?' bajo':'')+'"><b class="metrica">'+(i+1)+'</b><b>'+esc(x[0])+'</b><span class="metrica">'+x[1]+' · '+Math.round(x[1]/total*100)+' % · acum. '+Math.round(a*100)+' %</span><div class="b"><i style="width:'+(x[1]/lista[0][1]*100)+'%"></i></div></div>';
+      if(i===corte&&i<lista.length-1)h+='<div class="corte">Hasta aquí: 80 % de los defectos</div>';});
+    $("#g-pareto").innerHTML=h;
+    var cats={};CATS.forEach(function(c){cats[c.n]=0;c.causas.forEach(function(x){cats[c.n]+=mapa[x[0]]||0;});});
+    var cl=Object.keys(cats).map(function(k){return [k,cats[k]];}).sort(function(a,b){return b[1]-a[1];});
+    $("#g-cat").innerHTML=cl.map(function(x){return '<div class="fila"><span></span><b>'+x[0]+'</b><span class="metrica">'+x[1]+'</span><div class="b"><i style="width:'+(x[1]/(cl[0][1]||1)*100)+'%"></i></div></div>';}).join("");
+    var buenas=2587+estado.buenas-80;
+    $("#g-def").textContent=total;$("#g-buenas").textContent=buenas.toLocaleString("es-CO");$("#g-pct").textContent=pct(total,buenas+total);
+    var p=total/(buenas+total)*100;$("#g-est").textContent=p<=3?"Dentro de la meta (≤ 5 %)":p<=5?"Cerca del límite (≤ 5 %)":"Por encima de la meta (≤ 5 %)";
+    $("#g-tabla").innerHTML=estado.registros.length?estado.registros.map(function(r){return "<tr><td>"+r.hora.toLocaleTimeString("es-CO",{hour:"numeric",minute:"2-digit"})+"</td><td>"+esc(r.causa)+"</td><td>"+r.cat+"</td><td>"+r.cant+"</td><td>"+r.accion+"</td><td>"+esc(r.op)+"</td></tr>";}).join(""):'<tr><td colspan="6" class="metrica">Registren defectos en la vista de Producción y aparecen aquí.</td></tr>';
+  }
+
+  // ---- Pruebas con usuarios ----
+  $("#p-iniciar").onclick=function(){
+    var nombre=$("#p-nombre").value.trim();if(!nombre){$("#p-nombre").focus();return;}
+    estado.sesion={nombre:nombre,actor:$("#p-actor").value};
+    $("#p-actual").textContent="Probando: "+nombre+" ("+estado.sesion.actor+"). Vayan a Producción y registren 3 defectos.";
+    vista("prod");
+  };
+  function pintarPruebas(){
+    var p=estado.pruebas;
+    $("#p-tabla").innerHTML=p.length?p.map(function(x){return "<tr><td>"+esc(x.persona)+"</td><td>"+esc(x.actor)+"</td><td>"+esc(x.causa)+"</td><td>"+(x.seg!=null?x.seg.toFixed(1).replace(".",",")+" s":"—")+"</td><td>"+(x.toques||"—")+"</td><td>"+(x.deshizo?"Sí":"No")+"</td></tr>";}).join(""):'<tr><td colspan="6" class="metrica">Sin pruebas todavía.</td></tr>';
+    var v=p.filter(function(x){return x.seg!=null;});
+    if(v.length){var prom=v.reduce(function(s,x){return s+x.seg;},0)/v.length;var bajo=v.filter(function(x){return x.seg<30&&x.toques<=3;}).length;var personas={};p.forEach(function(x){personas[x.persona]=1;});
+      $("#p-resumen").textContent=Object.keys(personas).length+" personas · "+v.length+" registros · tiempo promedio "+prom.toFixed(1).replace(".",",")+" s · "+bajo+" de "+v.length+" cumplieron la meta (menos de 30 s y máx. 3 toques).";}
+    else $("#p-resumen").textContent="";
+  }
+  $("#p-csv").onclick=function(){
+    var filas=[["Persona","Actor","Causa","Segundos","Toques","Deshizo"]].concat(estado.pruebas.map(function(x){return [x.persona,x.actor,x.causa,x.seg!=null?x.seg.toFixed(1).replace(".",","):"",x.toques||"",x.deshizo?"Sí":"No"];}));
+    var csv="﻿"+filas.map(function(f){return f.map(function(c){c=String(c);return /[;"\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c;}).join(";");}).join("\r\n");
+    var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="pruebas-usuarios-nivel-medio.csv";a.click();
+  };
+  pintarProd();
+})();
+</script>
+</body>
+</html>
