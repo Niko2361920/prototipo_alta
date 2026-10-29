@@ -103,8 +103,11 @@ export default function Produccion() {
   async function sumar(cantidad) {
     if (!actual) return;
     try {
-      await api(`/api/trabajos/${actual._id}/avance`, { method: 'POST', body: { cantidad, operario } });
-      avisar(`${cantidad > 0 ? '+' : ''}${cantidad} buenas registradas.`);
+      const { trabajo } = await api(`/api/trabajos/${actual._id}/avance`, { method: 'POST', body: { cantidad, operario } });
+      const diferencia = (trabajo.buenas || 0) - (actual.buenas || 0);
+      if (diferencia < 0) avisar(`${n(-diferencia)} buenas descontadas.`);
+      else if (cantidad < 0 && diferencia === 0) avisar('El avance ya está en 0; no se descontaron unidades.');
+      else avisar(`+${n(diferencia)} buenas registradas.`);
       recargar();
     } catch (e) {
       avisar(e.message, 'error');
@@ -327,12 +330,13 @@ function PanelTrabajo({ t, registros, otros, sumar, otraCantidad, setOtraCantida
             <est.Ico tam={20} />{n(t.defectos)} defectos · {pct(pDef)} · {est.texto}
           </span>
           <div className="tv-sumar">
+            <button className="tv-btn" onClick={() => sumar(-10)} disabled={!t.buenas} aria-label="Reducir 10 unidades buenas" title="Reducir 10 unidades buenas">−10</button>
             {[10, 25, 50].map((x) => <button key={x} className="tv-btn" onClick={() => sumar(x)}>+{x}</button>)}
             {!otraCantidad && <button className="tv-btn" onClick={() => setOtraCantidad(true)}>Otra</button>}
             {otraCantidad && (
               <form onSubmit={(e) => { e.preventDefault(); const v = Number(valor); if (v) sumar(v); setValor(''); setOtraCantidad(false); }} style={{ display: 'flex', gap: '.4em' }}>
-                <input className="entrada" autoFocus type="number" inputMode="numeric" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Cant." style={{ width: '6em', minHeight: '2.6em' }} aria-label="Cantidad de buenas (negativo para corregir)" />
-                <button className="tv-btn primario">Sumar</button>
+                <input className="entrada" autoFocus type="number" inputMode="numeric" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="+ / −" style={{ width: '6em', minHeight: '2.6em' }} aria-label="Cantidad de buenas (usa un número negativo para reducir)" title="Usa un número negativo para reducir el avance" />
+                <button className="tv-btn primario">{Number(valor) < 0 ? 'Restar' : 'Sumar'}</button>
               </form>
             )}
           </div>
