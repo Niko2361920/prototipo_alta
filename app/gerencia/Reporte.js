@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Logo from '@/components/Logo';
 import { Icono } from '@/components/Iconos';
-import { useDatos, useAviso, n, pct, estadoDefectos } from '@/components/ui';
+import { api, useDatos, useAviso, n, pct, fechaHora, estadoDefectos } from '@/components/ui';
 import { META_MERMA } from '@/lib/catalogo';
 
 function hoyBogota() {
@@ -39,6 +39,38 @@ export default function Reporte() {
     if (datos.hayDatosPrueba) l.push('', '(Incluye datos de prueba)');
     return l.join('\n');
   }, [datos, k, titulo]);
+
+  const { datos: hist, recargar: recargarHist } = useDatos('/api/reportes?limite=30');
+  const [guardando, setGuardando] = useState(false);
+
+  // Guarda el reporte del día en la base de datos (uno por día; si ya existía, lo reemplaza).
+  async function guardar(silencioso = false) {
+    if (!datos) return;
+    setGuardando(true);
+    try {
+      const r = await api('/api/reportes', {
+        method: 'POST',
+        body: {
+          dia,
+          buenas: k.buenas,
+          defectos: k.totalDefectos,
+          pctDefectos: k.pctDefectos,
+          reprocesos: k.reprocesos,
+          descartes: k.descartes,
+          causas: datos.pareto.slice(0, 5).map((p) => ({ nombre: p.nombre, cantidad: p.cantidad, pct: p.pct })),
+          trabajos: datos.trabajos,
+          texto,
+          datosPrueba: datos.hayDatosPrueba,
+        },
+      });
+      if (!silencioso) avisar(r.reemplazo ? 'Reporte actualizado en la base de datos.' : 'Reporte guardado en la base de datos.');
+      recargarHist();
+    } catch (e) {
+      avisar(e.message, 'error');
+    } finally {
+      setGuardando(false);
+    }
+  }
 
   async function copiar() {
     try {
@@ -81,11 +113,30 @@ export default function Reporte() {
           <div className="reporte-texto">{texto || 'Cargando…'}</div>
         </div>
         <div className="no-imprimir" style={{ display: 'flex', gap: '.6rem', flexWrap: 'wrap' }}>
-          <a className="btn" href={`https://wa.me/?text=${encodeURIComponent(texto)}`} target="_blank" rel="noreferrer"><Icono.whatsapp tam={18} />Compartir por WhatsApp</a>
+          <button className="btn" onClick={() => guardar()} disabled={!datos || guardando}><Icono.check tam={18} />{guardando ? 'Guardando…' : 'Guardar reporte'}</button>
+          <a className="btn sec" href={`https://wa.me/?text=${encodeURIComponent(texto)}`} target="_blank" rel="noreferrer" onClick={() => guardar(true)}><Icono.whatsapp tam={18} />Compartir por WhatsApp</a>
           <button className="btn sec" onClick={copiar}><Icono.copiar tam={18} />Copiar texto</button>
           <button className="btn sec" onClick={() => window.print()}><Icono.imprimir tam={18} />Imprimir</button>
         </div>
       </article>
+
+      <section className="reporte-hoja no-imprimir" style={{ marginTop: '1rem' }}>
+        <h3 style={{ fontSize: '1rem', marginBottom: '.5rem' }}>Reportes guardados</h3>
+        {!hist?.reportes?.length ? (
+          <p>Aún no hay reportes guardados. Usa «Guardar reporte» para dejar el del día en la base de datos.</p>
+        ) : (
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '.4rem' }}>
+            {hist.reportes.map((r) => (
+              <li key={r.dia}>
+                <button className="btn sec" style={{ width: '100%', justifyContent: 'space-between' }} onClick={() => setDia(r.dia)}>
+                  <span>{r.dia} · {n(r.buenas)} buenas · {n(r.defectos)} defectos ({pct(r.pctDefectos)})</span>
+                  <small>Guardado {fechaHora(r.guardadoEn)}{r.datosPrueba ? ' · datos de prueba' : ''}</small>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
       {aviso}
     </>
   );
