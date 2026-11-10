@@ -2,9 +2,20 @@
 import { useEffect, useState } from 'react';
 import Logo from '@/components/Logo';
 import { Icono } from '@/components/Iconos';
-import { USUARIOS_BASE } from '@/lib/catalogo';
+
+// Tarjetas que se quitaron de «¿Quién eres?» en este dispositivo. Solo se
+// ocultan aquí: la cuenta sigue existiendo (para borrarla: Gerencia → Usuarios).
+const LLAVE_OCULTOS = 'tg_ocultos';
+function leerOcultos() {
+  try { return JSON.parse(localStorage.getItem(LLAVE_OCULTOS) || '[]'); } catch { return []; }
+}
+function guardarOcultos(lista) {
+  try { localStorage.setItem(LLAVE_OCULTOS, JSON.stringify(lista)); } catch {}
+}
 
 export default function Ingreso() {
+  const [usuarios, setUsuarios] = useState(null);
+  const [ocultos, setOcultos] = useState([]);
   const [usuario, setUsuario] = useState('');
   const [clave, setClave] = useState('');
   const [mostrarClave, setMostrarClave] = useState(false);
@@ -14,7 +25,18 @@ export default function Ingreso() {
 
   useEffect(() => {
     fetch('/api/configurar').then((r) => r.json()).then(setEstado).catch(() => setEstado({ error: true }));
+    fetch('/api/usuarios').then((r) => r.json()).then((d) => setUsuarios(d.usuarios || [])).catch(() => setUsuarios([]));
+    setOcultos(leerOcultos());
   }, []);
+
+  const visibles = (usuarios || []).filter((u) => !ocultos.includes(u.usuario));
+  const quitar = (u) => {
+    const lista = [...new Set([...ocultos, u])];
+    setOcultos(lista);
+    guardarOcultos(lista);
+    if (usuario === u) setUsuario('');
+  };
+  const mostrarTodos = () => { setOcultos([]); guardarOcultos([]); };
 
   async function entrar(e) {
     e.preventDefault();
@@ -79,19 +101,32 @@ export default function Ingreso() {
             </div>
           )}
 
-          <div>
-            <p style={{ fontSize: '.82rem', fontWeight: 700, color: 'var(--tinta-2)', marginBottom: '.4rem' }}>¿Quién eres?</p>
-            <div className="quienes">
-              {USUARIOS_BASE.map((u) => (
-                <button type="button" key={u.usuario} className="quien" aria-pressed={usuario === u.usuario}
-                  onClick={() => { setUsuario(u.usuario); document.getElementById('clave')?.focus(); }}>
-                  <span className={`avatar ${u.rol === 'produccion' ? 'prod' : ''}`}>{u.corto[0]}</span>
-                  <b>{u.corto}</b>
-                  <small>{u.rol === 'gerente' ? 'Gerencia' : 'Producción'}</small>
+          {(visibles.length > 0 || ocultos.length > 0) && (
+            <div>
+              <p style={{ fontSize: '.82rem', fontWeight: 700, color: 'var(--tinta-2)', marginBottom: '.4rem' }}>¿Quién eres?</p>
+              <div className="quienes quienes-ingreso">
+                {visibles.map((u) => (
+                  <div key={u.usuario} className="quien-caja">
+                    <button type="button" className="quien" aria-pressed={usuario === u.usuario} title={u.nombre}
+                      onClick={() => { setUsuario(u.usuario); document.getElementById('clave')?.focus(); }}>
+                      <span className={`avatar ${u.rol === 'produccion' ? 'prod' : ''}`}>{(u.corto[0] || '?').toUpperCase()}</span>
+                      <b>{u.corto}</b>
+                      <small>{u.rol === 'gerente' ? 'Gerencia' : 'Producción'}</small>
+                    </button>
+                    <button type="button" className="quien-quitar" onClick={() => quitar(u.usuario)}
+                      aria-label={`Quitar a ${u.corto} de esta pantalla`} title="Quitar de esta pantalla">
+                      <Icono.x tam={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {ocultos.length > 0 && (
+                <button type="button" className="enlace-boton" onClick={mostrarTodos}>
+                  Mostrar todos ({ocultos.length} {ocultos.length === 1 ? 'oculto' : 'ocultos'})
                 </button>
-              ))}
+              )}
             </div>
-          </div>
+          )}
 
           <label className="campo">
             <span>Usuario</span>
@@ -106,6 +141,9 @@ export default function Ingreso() {
               </button>
             </div>
           </div>
+          <a href={`/recuperar${usuario ? `?u=${encodeURIComponent(usuario)}` : ''}`} style={{ fontSize: '.88rem', justifySelf: 'end', marginTop: '-.5rem' }}>
+            ¿Olvidaste tu contraseña?
+          </a>
           {error && <p className="error-form" role="alert"><Icono.alerta tam={18} />{error}</p>}
           <button className="btn" disabled={enviando} style={{ minHeight: 52 }}>
             {enviando ? 'Entrando…' : 'Entrar'} <Icono.derecha tam={18} />
@@ -116,7 +154,7 @@ export default function Ingreso() {
             </p>
           )}
           <p style={{ color: 'var(--gris)', fontSize: '.82rem' }}>
-            Angélica entra a Gerencia. Diego y Joshua entran a Producción (la pantalla del televisor).
+            Gerencia entra al panel de gestión. Producción entra a la pantalla del televisor.
           </p>
         </form>
       </section>

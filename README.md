@@ -10,20 +10,50 @@ La idea priorizada es una plataforma para que el operario registre cada defecto 
 
 | Nivel | Qué es | Dónde está |
 |---|---|---|
-| **Bajo** | Kit en papel (pantalla de TV, tarjetas de causas para recortar, hoja de verificación para la planta y formato para las pruebas con usuarios) + un script que crea el Google Form con su hoja de Pareto. | `prototipos/nivel-bajo/` |
+| **Bajo** | Kit en papel (pantalla de TV, tarjetas de causas para recortar, hoja de verificación para la planta y formato para las pruebas con usuarios) + un script que crea el Google Form con su hoja de Pareto. | Fuera de este repositorio (carpeta del equipo) |
 | **Medio** | Prototipo navegable en un solo archivo HTML, con datos de ejemplo y sin base de datos. Incluye una pestaña que mide el tiempo y los toques de cada registro durante las pruebas con usuarios. | `public/prototipos/nivel-medio.html` (publicado en `/prototipos/nivel-medio.html`) |
 | **Alto** | Plataforma funcional: Next.js + MongoDB Atlas, desplegada en Vercel. | Todo el resto del repositorio |
 
 ## Qué hace la plataforma (nivel alto)
 
-Al entrar, el usuario decide la interfaz:
+Al entrar, cada persona toca su tarjeta en «¿Quién eres?», escribe su contraseña y la plataforma abre la interfaz de su rol. Funciona en computador, tablet y celular (Windows, iOS y Android).
 
-- **Gerencia** (`angelica`): resumen con % de envases con defecto frente a la meta de 1 % a 5 %, Pareto de causas, defectos por día y por categoría 6M; tablero de trabajos (en producción, en cola y terminados) para crear pedidos con su boceto; registros con descarga a Excel (CSV), y reporte del día para compartir por WhatsApp. Funciona en computador, tablet y celular (Windows, iOS y Android).
-- **Producción** (`diego`, `joshua`): pantalla pensada para el portátil conectado por HDMI al televisor del taller. Muestra el boceto, los datos del trabajo (cliente, envase, material, tinta, técnica, unidades), el avance, las indicaciones de gerencia y **lo que falló antes en trabajos parecidos** (mismo material, misma tinta, envase con relieve, misma técnica o mismo cliente), con una recomendación por causa. Se registra un defecto en dos toques: categoría 6M y causa. También funciona con el teclado: teclas 1 a 6, y luego el número de la causa. Se actualiza sola cada 12 segundos.
+### Gerencia (`angelica` y las cuentas de gerencia que se creen)
+- **Resumen**: % de envases con defecto frente a la meta de 1 % a 5 %, Pareto de causas, defectos por día y por categoría 6M.
+- **Trabajos**: tablero (en producción, en cola y terminados) para crear pedidos con su boceto.
+- **Registros**: cada defecto registrado, con descarga a Excel (CSV).
+- **Reporte**, con dos vistas:
+  - *Del día*: resumen para compartir por WhatsApp, copiar o imprimir.
+  - *Del mes · materia prima*: se registra cuándo llegan los envases del cliente y las compras y consumos de tinta, catalizador, PRIME, diluyente, emulsión y planchas. Se filtra por mes y por cliente, y muestra unidades buenas, defectos, envases recibidos y usados, tinta consumida, lo que entró, salió y queda (inventario), los últimos 6 meses, un estimado a 12 meses para presupuestar y la línea de tiempo de cada trabajo (llegada de envases → inicio → fin). Se puede imprimir. Los envases usados no se registran a mano: salen de buenas + descartes.
+- **Usuarios**: cuentas de la plataforma, solicitudes de «Olvidé mi contraseña», cambiar contraseñas y eliminar cuentas.
+
+### Producción (`diego`, `joshua` y las cuentas de producción que se creen)
+Pantalla pensada para el portátil conectado por HDMI al televisor del taller. Muestra el boceto, los datos del trabajo (cliente, envase, material, tinta, técnica, unidades), el avance, las indicaciones de gerencia y **lo que falló antes en trabajos parecidos** (mismo material, misma tinta, envase con relieve, misma técnica o mismo cliente), con una recomendación por causa. Se registra un defecto en dos toques: categoría 6M y causa. También funciona con el teclado: teclas 1 a 6, y luego el número de la causa. Se actualiza sola cada 12 segundos.
+
+### Usuarios y contraseñas
+- **Crear cuenta** (en la pantalla de ingreso): cualquiera puede crear una cuenta de producción; para una de gerencia hace falta el código de gerencia (`CODIGO_GERENCIA`).
+- Cada cuenta nueva aparece como tarjeta en «¿Quién eres?», igual que Angélica, Diego y Joshua. Las de producción también salen en el selector «Registra» de la pantalla del televisor.
+- La **×** de cada tarjeta la quita **solo de ese dispositivo** (se guarda en el navegador); «Mostrar todos» la devuelve. Para borrar una cuenta de verdad: **Gerencia → Usuarios**.
+- **¿Olvidaste tu contraseña?** No hay correo, así que funciona de dos maneras:
+  - *Pedirle a gerencia*: la persona escribe su usuario y la solicitud aparece en **Gerencia → Usuarios**. La gerente le pone una contraseña nueva con el botón «Contraseña» y se la dice en persona.
+  - *Tengo el código de gerencia*: con el código se pone una contraseña nueva a cualquier cuenta. Es la salida si la que olvidó la clave es la gerente.
+- También se puede desde la terminal (con `MONGODB_URI` en `.env.local`):
+  ```bash
+  node --env-file=.env.local scripts/cambiar-clave.mjs diego NuevaClave123
+  ```
 
 ## Desplegar (gratis): GitHub + MongoDB Atlas + Vercel
 
 ### 1. Subir el código a GitHub
+**Si el repositorio ya existe** (actualizar a una versión nueva): copia los archivos del proyecto encima de los de tu copia del repositorio (sin borrar la carpeta `.git`) y ejecuta:
+```bash
+git add .
+git commit -m "Describe aquí el cambio"
+git push
+```
+Vercel publica la versión nueva solo, en uno o dos minutos.
+
+**Si es la primera vez:**
 1. En GitHub crea un repositorio vacío llamado `twoglass-registro-6m` (sin README).
 2. Descomprime el proyecto y, dentro de la carpeta, ejecuta:
    ```bash
@@ -48,6 +78,7 @@ Al entrar, el usuario decide la interfaz:
    | `MONGODB_URI` | la cadena de Atlas |
    | `MONGODB_DB` | `twoglass` |
    | `SESSION_SECRET` | una clave larga y aleatoria (32 caracteres o más) |
+   | `CODIGO_GERENCIA` | código de 8 caracteres o más. Sin él no se pueden crear cuentas de gerencia ni usar «Tengo el código de gerencia». No lo escribas en el código ni en este README. |
 3. *Deploy*. Cada vez que hagan `git push`, Vercel publica la nueva versión sola.
 4. Si cambias o agregas una variable, hay que **volver a desplegar** (*Deployments → ⋯ → Redeploy*): las variables solo aplican en despliegues nuevos.
 
@@ -64,63 +95,85 @@ Abre `https://TU-PROYECTO.vercel.app/api/salud`. Revisa paso a paso las variable
 | La cadena está mal escrita | Quitar comillas o espacios. Si la contraseña tiene símbolos, cambiarla por una solo con letras y números. |
 
 ### 4. Primer uso
-Abre `https://TU-PROYECTO.vercel.app/configurar`, escribe la contraseña de Angélica, Diego y Joshua y marca si quieres **datos de prueba** (clientes ficticios marcados como «prueba», para mostrar la plataforma). Esa página se bloquea después del primer uso. Los datos de prueba se borran con un botón desde Gerencia → Resumen.
+Abre `https://TU-PROYECTO.vercel.app/configurar`, escribe la contraseña de Angélica, Diego y Joshua y marca si quieres **datos de prueba** (trabajos, defectos y materia prima de clientes ficticios, marcados como «prueba», para mostrar la plataforma). Esa página se bloquea después del primer uso. Los datos de prueba se borran con un botón desde Gerencia → Resumen. Las demás cuentas se crean después desde **Crear cuenta**.
 
 ### En el taller
 - En el portátil del televisor, entra con `diego` o `joshua` y pon pantalla completa (botón arriba a la derecha o F11). La sesión de producción dura 30 días.
-- En el celular (Android o iPhone), Angélica puede usar «Agregar a pantalla de inicio» para abrirla como una app.
+- En el celular (Android o iPhone), gerencia puede usar «Agregar a pantalla de inicio» para abrirla como una app.
+- Cuando lleguen envases o se compre o gaste material: Gerencia → Reporte → *Del mes* → «Registrar materia prima».
 
 ## Probar en un computador sin MongoDB
 
-Desde PowerShell, abre la carpeta del proyecto y ejecuta:
-
-```bash
-cd "C:\Users\nicol\OneDrive\Desktop\twoglass-registro-6m\twoglass-registro-6m"
-npm ci
-$env:MONGODB_URI = "memoria"
-npm run dev
-```
+1. En la carpeta del proyecto (la que tiene `package.json`) crea un archivo `.env.local` con lo siguiente. Git no lo sube a GitHub.
+   ```
+   MONGODB_URI=memoria
+   CODIGO_GERENCIA=el-codigo-de-gerencia
+   ```
+2. Abre esa carpeta en PowerShell y ejecuta:
+   ```bash
+   npm ci
+   npm run dev
+   ```
 
 Cuando aparezca que el servidor está listo, abre http://localhost:3000/configurar. Crea las contraseñas de Angélica, Diego y Joshua; puedes dejar marcada la opción de datos de prueba. Después inicia sesión en http://localhost:3000.
 
-La variable `MONGODB_URI` solo se configura en esa ventana de PowerShell. Los datos de prueba quedan guardados localmente en `.data/memdb.json` y se conservan al reiniciar el servidor. Para detenerlo, pulsa `Ctrl+C` en la terminal. Este modo es solo para desarrollo local; no sirve en Vercel.
+Los datos de prueba quedan guardados localmente en `.data/memdb.json` y se conservan al reiniciar el servidor. Para detenerlo, pulsa `Ctrl+C` en la terminal. Este modo es solo para desarrollo local; no sirve en Vercel.
 
-En macOS, Linux o Git Bash, ejecuta `npm ci` y luego `MONGODB_URI=memoria npm run dev`.
-
-Si alguien olvida su contraseña:
-```bash
-node --env-file=.env.local scripts/cambiar-clave.mjs diego NuevaClave123
-```
+Los mismos comandos sirven en macOS, Linux y Git Bash.
 
 ## Cómo está hecho
 
 ```
 app/                 páginas y API (Next.js App Router)
-  page.js            ingreso (el usuario decide la interfaz)
+  page.js            ingreso (tarjetas «¿Quién eres?»)
   configurar/        primer uso
-  gerencia/          Resumen, Trabajos, Registros, Reporte
+  registro/          crear cuenta
+  recuperar/         olvidé mi contraseña
+  gerencia/          Resumen, Trabajos, Registros, Reporte (día y mes), Usuarios
   produccion/        pantalla de TV
-  api/               rutas: trabajos, defectos, avances, resumen, exportar…
+  api/               rutas: trabajos, defectos, avances, resumen, mensual,
+                     materia, usuarios, clave, exportar…
 components/          logo, íconos 6M, gráficos (Pareto en SVG), utilidades
 lib/
-  catalogo.js        categorías 6M, las 18 causas del Ishikawa, materiales, tintas
+  catalogo.js        categorías 6M, las 18 causas del Ishikawa, materiales, tintas, insumos
   calculos.js        Pareto, indicadores y «trabajos parecidos»
-  datos.js           acceso a MongoDB
+  datos.js           acceso a MongoDB (trabajos, defectos, avances)
+  materia.js         materia prima y reporte mensual
+  usuarios.js        utilidades de cuentas y del código de gerencia
   semilla.js         datos de prueba
 middleware.js        separa Gerencia y Producción según el rol
 ```
 
-Colecciones en MongoDB: `usuarios`, `trabajos`, `bocetos` (imagen del arte), `defectos` (un registro por causa, con cantidad y si fue reproceso o descarte), `avances` (unidades buenas) y `contadores`.
+Colecciones en MongoDB: `usuarios`, `trabajos`, `bocetos` (imagen del arte), `defectos` (un registro por causa, con cantidad y si fue reproceso o descarte), `avances` (unidades buenas), `materia` (entradas y consumos de materia prima), `solicitudes_clave` (olvidé mi contraseña), `reportes` (reportes del día guardados), `auditoria` (ingresos y cambios) y `contadores`.
 
-Para cambiar o agregar causas, se edita `lib/catalogo.js`.
+Para cambiar o agregar causas o insumos, se edita `lib/catalogo.js`.
 
 ## Notas
 - La identidad visual (colores, tipografía Quicksand y logo) se tomó de twoglass.co.
 - Los gráficos usan un solo eje: las barras muestran el % de cada causa y la línea, el % acumulado.
 - Los tiempos meta (menos de 30 s y máximo 3 toques) son una propuesta del equipo para validar con los operarios.
 - Las recomendaciones que aparecen junto a cada causa son sugerencias del equipo, y hay que validarlas con Two Glass.
+- El consumo de tinta de los datos de prueba (≈1,5 g por color y pieza) es un supuesto del equipo, no una medida de Two Glass.
+
+## Siguientes módulos (propuesta)
+- Que producción marque el consumo de tinta desde el televisor al terminar un trabajo.
+- Alertas cuando un insumo esté por acabarse (inventario mínimo).
+- Costos: precio de cada insumo para ver el costo de materia prima por trabajo y por cliente.
 
 ## Decisiones
+
+**10 nov 2026**
+- Materia prima como movimientos (entrada / consumo) en una sola colección → el inventario es entradas − consumos, sin otra tabla que se desincronice. Contra: si nadie registra los consumos, el inventario queda alto; por eso el reporte muestra el estimado solo con los meses que tienen registros.
+- Los envases son del cliente: solo se registra su llegada; lo usado sale de producción (buenas + descartes), para no pedirle a nadie que lo cuente dos veces.
+- El reporte mensual va dentro de «Reporte» (Del día / Del mes) y no como sección nueva → la barra del celular ya tiene 5 botones.
+- Lo registra gerencia, no producción → la pantalla del televisor se mantiene en dos toques. Queda como siguiente paso que producción marque el consumo de tinta al terminar un trabajo.
+- El registro de defectos acepta como operario cualquier cuenta existente (antes solo diego, joshua y angelica), para que cuenten los operarios nuevos.
+
+**9 nov 2026**
+- `/api/usuarios` (GET) es pública → la pantalla de ingreso necesita la lista antes de iniciar sesión. Solo da usuario, nombre y rol. Contra: cualquiera ve los nombres de usuario; ya pasaba con las 3 tarjetas fijas.
+- «Olvidé mi contraseña» sin correo → la empresa no usa correo con los operarios. La solicitud responde igual exista o no el usuario, y tiene límite de 10 por hora por IP. El restablecer con código comparte el límite de 5 fallos por hora con el registro de gerencia.
+- Quitar una tarjeta es local (localStorage) y no borra la cuenta → cualquiera en el taller puede tocar la ×; borrar de verdad queda solo para gerencia. No se puede borrar la cuenta propia ni la última de gerencia; los registros de esa persona se conservan.
+- Cambiar una contraseña no cierra las sesiones abiertas (la sesión es un JWT sin estado); vencen solas (7 días gerencia, 30 producción).
 
 **26 oct 2026**
 - `/api/salud` es pública → hace falta antes de que exista algún usuario. Por eso solo muestra sí/no y la causa, nunca la cadena ni el host. Se descartó protegerla con sesión porque el fallo más común (no hay conexión) impide iniciar sesión.

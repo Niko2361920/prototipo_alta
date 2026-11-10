@@ -7,13 +7,15 @@ import { api } from '@/components/ui';
 import Resumen from './Resumen';
 import Trabajos from './Trabajos';
 import Registros from './Registros';
-import Reporte from './Reporte';
+import Reportes from './Reportes';
+import Usuarios from './Usuarios';
 
 const SECCIONES = [
   { id: 'resumen', nombre: 'Resumen', Ico: Icono.resumen, C: Resumen },
   { id: 'trabajos', nombre: 'Trabajos', Ico: Icono.trabajos, C: Trabajos },
   { id: 'registros', nombre: 'Registros', Ico: Icono.registros, C: Registros },
-  { id: 'reporte', nombre: 'Reporte', Ico: Icono.reporte, C: Reporte },
+  { id: 'reporte', nombre: 'Reporte', Ico: Icono.reporte, C: Reportes },
+  { id: 'usuarios', nombre: 'Usuarios', Ico: Icono.usuario, C: Usuarios },
 ];
 
 export default function Gerencia() {

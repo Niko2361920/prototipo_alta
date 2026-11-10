@@ -8,7 +8,8 @@ import { api, useDatos, n, pct, hora, quien, estadoDefectos } from '@/components
 import { CATEGORIAS, causasDe, causaPorId, categoriaPorId, tecnicaPorId, USUARIOS_BASE } from '@/lib/catalogo';
 import { colorTinta } from '@/lib/colores';
 
-const OPERARIOS = USUARIOS_BASE.filter((u) => u.rol === 'produccion');
+// Respaldo mientras carga /api/usuarios (que trae también las cuentas nuevas de producción)
+const OPERARIOS_BASE = USUARIOS_BASE.filter((u) => u.rol === 'produccion');
 
 function Reloj() {
   const [ahora, setAhora] = useState(null);
@@ -29,6 +30,7 @@ export default function Produccion() {
   const { datos, error, recargar } = useDatos('/api/produccion', 12000);
   const [yo, setYo] = useState(null);
   const [operario, setOperario] = useState('diego');
+  const [operarios, setOperarios] = useState(OPERARIOS_BASE);
   const [categoria, setCategoria] = useState(null);
   const [confirmado, setConfirmado] = useState(null);
   const [mensaje, setMensaje] = useState(null);
@@ -38,6 +40,10 @@ export default function Produccion() {
   const tMsg = useRef();
 
   useEffect(() => {
+    api('/api/usuarios').then((d) => {
+      const prod = (d.usuarios || []).filter((u) => u.rol === 'produccion');
+      if (prod.length) setOperarios(prod);
+    }).catch(() => {});
     api('/api/auth/yo').then((s) => {
       setYo(s);
       let guardado = null;
@@ -174,7 +180,7 @@ export default function Produccion() {
         </div>
         <div className="tv-quien" role="group" aria-label="¿Quién registra?">
           <span>Registra</span>
-          {OPERARIOS.map((u) => (
+          {operarios.map((u) => (
             <button key={u.usuario} aria-pressed={operario === u.usuario} onClick={() => elegirOperario(u.usuario)}>{u.corto}</button>
           ))}
         </div>
