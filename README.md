@@ -22,6 +22,7 @@ Al entrar, cada persona toca su tarjeta en «¿Quién eres?», escribe su contra
 - **Resumen**: % de envases con defecto frente a la meta de 1 % a 5 %, Pareto de causas, defectos por día y por categoría 6M.
 - **Trabajos**: tablero (en producción, en cola y terminados) para crear pedidos con su boceto.
 - **Registros**: cada defecto registrado, con descarga a Excel (CSV).
+- **Inventario**: qué hay de cada material para trabajar (la tinta por tipo **y color**), cuánto necesitan los trabajos en producción y en cola (con su merma), cuánto queda después, el mínimo y cuántos días dura con el consumo de los últimos 30 días. Avisa qué trabajo no tiene material o espera envases del cliente. **Al terminar un trabajo se descuenta solo** lo que se gastó: tinta (piezas × colores × gramos por pieza), catalizador, una plancha por color, PRIME si es PET y diluyente. Con «Corregir» se pone lo que se midió de verdad y la app ajusta los gramos por pieza. En «Ajustes» se cambian los mínimos, si cada tinta se mide en kg o en L y cuánto se gasta por pieza.
 - **Reporte**, con dos vistas:
   - *Del día*: resumen para compartir por WhatsApp, copiar o imprimir.
   - *Del mes · materia prima*: se registra cuándo llegan los envases del cliente y las compras y consumos de tinta, catalizador, PRIME, diluyente, emulsión y planchas. Se filtra por mes y por cliente, y muestra unidades buenas, defectos, envases recibidos y usados, tinta consumida, lo que entró, salió y queda (inventario), los últimos 6 meses, un estimado a 12 meses para presupuestar y la línea de tiempo de cada trabajo (llegada de envases → inicio → fin). Se puede imprimir. Los envases usados no se registran a mano: salen de buenas + descartes.
@@ -100,7 +101,8 @@ Abre `https://TU-PROYECTO.vercel.app/configurar`, escribe la contraseña de Ang�
 ### En el taller
 - En el portátil del televisor, entra con `diego` o `joshua` y pon pantalla completa (botón arriba a la derecha o F11). La sesión de producción dura 30 días.
 - En el celular (Android o iPhone), gerencia puede usar «Agregar a pantalla de inicio» para abrirla como una app.
-- Cuando lleguen envases o se compre o gaste material: Gerencia → Reporte → *Del mes* → «Registrar materia prima».
+- Cuando lleguen envases o se compre material: Gerencia → **Inventario** → «Registrar entrada» (o el **+** de cada material). Se puede escribir en g o kg, ml o L: la app convierte sola.
+- Lo que se gasta en los trabajos no se anota: se descuenta solo al terminar el trabajo.
 
 ## Probar en un computador sin MongoDB
 
@@ -129,22 +131,23 @@ app/                 páginas y API (Next.js App Router)
   configurar/        primer uso
   registro/          crear cuenta
   recuperar/         olvidé mi contraseña
-  gerencia/          Resumen, Trabajos, Registros, Reporte (día y mes), Usuarios
+  gerencia/          Resumen, Trabajos, Registros, Inventario, Reporte (día y mes), Usuarios
   produccion/        pantalla de TV
   api/               rutas: trabajos, defectos, avances, resumen, mensual,
-                     materia, usuarios, clave, exportar…
+                     materia, inventario, usuarios, clave, exportar…
 components/          logo, íconos 6M, gráficos (Pareto en SVG), utilidades
 lib/
   catalogo.js        categorías 6M, las 18 causas del Ishikawa, materiales, tintas, insumos
   calculos.js        Pareto, indicadores y «trabajos parecidos»
   datos.js           acceso a MongoDB (trabajos, defectos, avances)
   materia.js         materia prima y reporte mensual
+  inventario.js      existencias, ¿alcanza para la cola?, consumo automático, unidades
   usuarios.js        utilidades de cuentas y del código de gerencia
   semilla.js         datos de prueba
 middleware.js        separa Gerencia y Producción según el rol
 ```
 
-Colecciones en MongoDB: `usuarios`, `trabajos`, `bocetos` (imagen del arte), `defectos` (un registro por causa, con cantidad y si fue reproceso o descarte), `avances` (unidades buenas), `materia` (entradas y consumos de materia prima), `solicitudes_clave` (olvidé mi contraseña), `reportes` (reportes del día guardados), `auditoria` (ingresos y cambios) y `contadores`.
+Colecciones en MongoDB: `usuarios`, `trabajos`, `bocetos` (imagen del arte), `defectos` (un registro por causa, con cantidad y si fue reproceso o descarte), `avances` (unidades buenas), `materia` (entradas y consumos de materia prima), `solicitudes_clave` (olvidé mi contraseña), `config` (ajustes del inventario), `reportes` (reportes del día guardados), `auditoria` (ingresos y cambios) y `contadores`.
 
 Para cambiar o agregar causas o insumos, se edita `lib/catalogo.js`.
 
@@ -153,14 +156,23 @@ Para cambiar o agregar causas o insumos, se edita `lib/catalogo.js`.
 - Los gráficos usan un solo eje: las barras muestran el % de cada causa y la línea, el % acumulado.
 - Los tiempos meta (menos de 30 s y máximo 3 toques) son una propuesta del equipo para validar con los operarios.
 - Las recomendaciones que aparecen junto a cada causa son sugerencias del equipo, y hay que validarlas con Two Glass.
-- El consumo de tinta de los datos de prueba (≈1,5 g por color y pieza) es un supuesto del equipo, no una medida de Two Glass.
+- El gasto de tinta (1,5 g por color y pieza), el catalizador (10 %), el PRIME (2 ml por pieza) y el diluyente (0,3 L por trabajo) son supuestos del equipo. Hay que validarlos con Diego y Joshua; se cambian en Inventario → Ajustes.
 
 ## Siguientes módulos (propuesta)
-- Que producción marque el consumo de tinta desde el televisor al terminar un trabajo.
-- Alertas cuando un insumo esté por acabarse (inventario mínimo).
+- Ficha de montaje: guardar cómo se montó un trabajo que salió bien y mostrarlo cuando el cliente repite.
+- Fotos de evidencia desde producción (prueba aprobada, defectos raros).
+- Acta de entrega por trabajo: envases recibidos, buenas entregadas, merma y sobrantes devueltos.
 - Costos: precio de cada insumo para ver el costo de materia prima por trabajo y por cliente.
 
 ## Decisiones
+
+**10 nov 2026 · inventario**
+- El inventario no tiene tabla propia: se calcula de `materia` (entradas − consumos) → no se desincroniza. Las tintas se cuentan por tipo y color (`insumo|Color`), porque tener tinta UV negra no sirve para un trabajo dorado.
+- Consumo automático al pasar un trabajo a «terminado» (en `actualizarTrabajo`, el único lugar donde cambia el estado). Piezas estampadas = buenas + todos los defectos, porque la reprocesada se estampó dos veces. Si el trabajo se reabre o se borra, se quita su consumo automático.
+- «Corregir» ajusta los g por pieza con el promedio entre lo que había y lo medido → se acerca sin saltar por una sola medida rara.
+- Cada material se guarda en una sola unidad base (kg, L o unid.); al registrar se puede escribir g o ml y se convierte. Cambiar una tinta de kg a L solo se permite si no tiene registros, para no mezclar unidades (no se sabe la densidad).
+- «¿Alcanza para la cola?» reparte el material en orden: primero lo que está en producción, luego pausado y después la cola. Así el aviso dice qué trabajo es el primero que se queda sin material.
+- Si el inventario da negativo es porque se gastó más de lo que se registró como entrada; se muestra como aviso en vez de esconderlo.
 
 **10 nov 2026**
 - Materia prima como movimientos (entrada / consumo) en una sola colección → el inventario es entradas − consumos, sin otra tabla que se desincronice. Contra: si nadie registra los consumos, el inventario queda alto; por eso el reporte muestra el estimado solo con los meses que tienen registros.

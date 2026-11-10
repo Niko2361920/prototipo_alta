@@ -4,10 +4,10 @@ import { useState } from 'react';
 import Logo from '@/components/Logo';
 import { Icono } from '@/components/Iconos';
 import { api, useDatos, useAviso, Modal, n, pct, fecha, fechaHora } from '@/components/ui';
-import { INSUMOS, insumoPorId, TINTA_DE_TIPO } from '@/lib/catalogo';
+import { insumoPorId } from '@/lib/catalogo';
+import FormMateria from '@/components/FormMateria';
 
 const mesActual = () => new Date(Date.now() - 5 * 3600e3).toISOString().slice(0, 7);
-const hoyBogota = () => new Date(Date.now() - 5 * 3600e3).toISOString().slice(0, 10);
 const nombreMes = (m, corto = false) => {
   const s = new Date(`${m}-15T12:00:00-05:00`).toLocaleDateString('es-CO', corto ? { month: 'short' } : { month: 'long', year: 'numeric', timeZone: 'America/Bogota' });
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -202,7 +202,7 @@ export default function ReporteMes() {
                   <tr key={m._id}>
                     <td className="num" style={{ whiteSpace: 'nowrap' }}>{fecha(m.fecha)}</td>
                     <td>{m.tipo === 'entrada' ? <span className="chip">Entrada</span> : <span className="chip prueba">Consumo</span>}</td>
-                    <td>{insumoPorId[m.insumo]?.nombre || m.insumo}{m.nota && <div style={{ color: 'var(--gris)', fontSize: '.8rem' }}>{m.nota}</div>}</td>
+                    <td>{insumoPorId[m.insumo]?.nombre || m.insumo}{m.color ? ` · ${m.color}` : ''}{m.auto && <span className="chip" style={{ marginLeft: '.3rem' }}>automático</span>}{m.nota && <div style={{ color: 'var(--gris)', fontSize: '.8rem' }}>{m.nota}</div>}</td>
                     <td className="der num"><b>{cant(m.cantidad, m.unidad)}</b></td>
                     <td>{m.cliente || '—'}{m.codigo && <div style={{ color: 'var(--gris)', fontSize: '.8rem' }}>{m.codigo}</div>}</td>
                     <td><button className="btn fantasma icono chico" onClick={() => setBorrar(m)} aria-label="Borrar registro"><Icono.basura tam={16} /></button></td>
@@ -215,7 +215,7 @@ export default function ReporteMes() {
       </section>
 
       {registrar && (
-        <FormMateria opciones={datos?.opcionesTrabajo || []} clientes={datos?.clientes || []} cerrar={() => setRegistrar(false)}
+        <FormMateria opciones={datos?.opcionesTrabajo || []} clientes={datos?.clientes || []} unidades={datos?.unidades || {}} cerrar={() => setRegistrar(false)}
           listo={(m) => { setRegistrar(false); avisar(`${insumoPorId[m.insumo].nombre}: ${n(m.cantidad)} ${m.unidad} registrado.`); recargar(); }} />
       )}
       {borrar && (
@@ -226,88 +226,5 @@ export default function ReporteMes() {
       )}
       {aviso}
     </>
-  );
-}
-
-function FormMateria({ opciones, clientes, cerrar, listo }) {
-  const [f, setF] = useState({ tipo: 'entrada', insumo: 'envases', cantidad: '', trabajoId: '', cliente: '', fecha: hoyBogota(), nota: '' });
-  const [error, setError] = useState('');
-  const [enviando, setEnviando] = useState(false);
-  const insumo = insumoPorId[f.insumo];
-  const trabajo = opciones.find((t) => t._id === f.trabajoId);
-  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
-
-  const elegirTrabajo = (e) => {
-    const t = opciones.find((x) => x._id === e.target.value);
-    const nuevo = { ...f, trabajoId: e.target.value };
-    // Si se está registrando tinta, se pone la tinta del trabajo
-    if (t && insumo.grupo === 'tinta' && TINTA_DE_TIPO[t.tintaTipo]) nuevo.insumo = TINTA_DE_TIPO[t.tintaTipo];
-    setF(nuevo);
-  };
-  const elegirTipo = (tipo) => setF({ ...f, tipo, insumo: tipo === 'consumo' && f.insumo === 'envases' ? 'tinta_uv' : f.insumo });
-
-  async function guardar(e) {
-    e.preventDefault();
-    setError('');
-    setEnviando(true);
-    try {
-      const { movimiento } = await api('/api/materia', { method: 'POST', body: f });
-      listo(movimiento);
-    } catch (err) {
-      setError(err.message);
-      setEnviando(false);
-    }
-  }
-
-  return (
-    <Modal titulo="Registrar materia prima" onCerrar={cerrar} ancho={560}>
-      <form onSubmit={guardar} style={{ display: 'grid', gap: '1rem' }}>
-        <div className="segmento" role="group" aria-label="Tipo de movimiento">
-          <button type="button" aria-pressed={f.tipo === 'entrada'} onClick={() => elegirTipo('entrada')}>Entrada (llegó o se compró)</button>
-          <button type="button" aria-pressed={f.tipo === 'consumo'} onClick={() => elegirTipo('consumo')}>Consumo (se gastó)</button>
-        </div>
-        <div className="form-rejilla">
-          <label className="campo">
-            <span>Material</span>
-            <select className="entrada" value={f.insumo} onChange={set('insumo')}>
-              {INSUMOS.filter((i) => f.tipo === 'entrada' || i.grupo !== 'envases').map((i) => <option key={i.id} value={i.id}>{i.nombre}</option>)}
-            </select>
-          </label>
-          <label className="campo">
-            <span>Cantidad ({insumo.unidad})</span>
-            <input className="entrada" inputMode="decimal" value={f.cantidad} onChange={set('cantidad')} required placeholder={insumo.unidad === 'unid.' ? 'Ej.: 300' : 'Ej.: 1,5'} />
-          </label>
-          <label className="campo">
-            <span>Trabajo {insumo.grupo === 'envases' ? '' : '(opcional)'}</span>
-            <select className="entrada" value={f.trabajoId} onChange={elegirTrabajo}>
-              <option value="">{insumo.grupo === 'envases' ? 'Sin trabajo todavía' : 'General (no es de un trabajo)'}</option>
-              {opciones.map((t) => <option key={t._id} value={t._id}>{t.codigo} · {t.cliente} · {t.producto}</option>)}
-            </select>
-          </label>
-          {!trabajo ? (
-            <label className="campo">
-              <span>Cliente {insumo.grupo === 'envases' ? '' : '(opcional)'}</span>
-              <input className="entrada" value={f.cliente} onChange={set('cliente')} list="lista-clientes" maxLength={80} required={insumo.grupo === 'envases'} />
-              <datalist id="lista-clientes">{clientes.map((c) => <option key={c} value={c} />)}</datalist>
-            </label>
-          ) : (
-            <div className="campo"><span>Cliente</span><p style={{ margin: '.55rem 0 0', fontWeight: 700 }}>{trabajo.cliente}</p></div>
-          )}
-          <label className="campo">
-            <span>Fecha</span>
-            <input className="entrada" type="date" value={f.fecha} max={hoyBogota()} onChange={set('fecha')} required />
-          </label>
-          <label className="campo">
-            <span>Nota (opcional)</span>
-            <input className="entrada" value={f.nota} onChange={set('nota')} maxLength={200} placeholder={f.tipo === 'entrada' ? 'Ej.: factura 123, proveedor…' : 'Ej.: incluye la prueba de impresión'} />
-          </label>
-        </div>
-        {error && <p className="error-form" role="alert"><Icono.alerta tam={18} />{error}</p>}
-        <div style={{ display: 'flex', gap: '.5rem', justifyContent: 'flex-end' }}>
-          <button type="button" className="btn sec" onClick={cerrar}>Cancelar</button>
-          <button className="btn" disabled={enviando}>{enviando ? 'Guardando…' : 'Guardar'}</button>
-        </div>
-      </form>
-    </Modal>
   );
 }
